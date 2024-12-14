@@ -42,6 +42,13 @@ contract Ballot is
     function createProposal(string memory proposalName) public {
         require(startTime == 0, "Ballot has already started - cannot add new proposals");
         // Encrypt the current proposal count
+        euint16 encryptedIndex = TFHE.asEuint16(proposalCount);
+        proposals[encryptedIndex] = Proposal({name: proposalName, voteCount: eZero});
+        proposalCount++;
+    }
+    function createProposalUnencryptedIndex(string memory proposalName) public {
+        require(startTime == 0, "Ballot has already started - cannot add new proposals");
+        // Encrypt the current proposal count
         uint16 index = proposalCount;
         uproposals[index] = Proposal({name: proposalName, voteCount: eZero});
         proposalCount++;
