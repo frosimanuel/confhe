@@ -46,24 +46,25 @@ contract Ballot is
         proposalCount++;
     }
 
-
-    function getProposal(euint16 _encryptedIndex) public view returns (Proposal memory) {
-        return proposals[_encryptedIndex];
+    function getProposal(einput index, bytes calldata inputProof) public returns (Proposal memory) {
+        euint16 eProposalIndex = TFHE.asEuint16(index, inputProof);
+        return proposals[eProposalIndex];
     }
 
-    function startBallot() public { 
+    function startBallot() public {
         startTime = block.timestamp;
     }
 
-    function vote(euint16 eProposalIndex) public {
+    function vote(einput index, bytes calldata inputProof) public {
         
         require(isActive(), "Ballot is finished");
         require(!hasVoted[msg.sender], "Already voted");
-        
+
+        euint16 eProposalIndex = TFHE.asEuint16(index, inputProof);
+
         for (uint16 i = 0; i < proposalCount; i++) {
             euint16 ei = TFHE.asEuint16(i);
             ebool isEqual = TFHE.eq(eProposalIndex, ei);
-
 
             // Using ternary element select to increment the vote count of the selected proposal
             proposals[ei].voteCount = TFHE.add(
@@ -71,7 +72,6 @@ contract Ballot is
                 TFHE.select(isEqual, eOne, eZero)
             );
         }
-
 
         hasVoted[msg.sender] = true;
     }
@@ -92,8 +92,6 @@ contract Ballot is
         euint16 maxVotes = eZero;
         euint16 maxIndex;
 
-
-
         for (uint16 i = 0; i < proposalCount; i++) {
             euint16 ei = TFHE.asEuint16(i);
             euint16 currentVotes = proposals[ei].voteCount;
@@ -102,8 +100,5 @@ contract Ballot is
             maxIndex = TFHE.select(isHigher, ei, maxIndex);
         }   
         return proposals[maxIndex].name;
-
-        // TODO: decide what to return/decrypt
-
     }
 }   

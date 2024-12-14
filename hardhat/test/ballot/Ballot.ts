@@ -16,9 +16,11 @@ describe("Ballot", function () {
 
   beforeEach(async function () {
     const contract = await deployBallot();
+    await contract.waitForDeployment();
     this.contractAddress = await contract.getAddress();
     this.ballot = contract;
-    this.fhevm = await createInstance();
+    //this.fhevm = await createInstance();
+    this.instances = await createInstance();
   });
 
   it("should deploy the contract", async function () {
@@ -30,10 +32,13 @@ describe("Ballot", function () {
     expect(isFinished).to.be.false;
   });
   it("should create a proposal", async function () {
+    const input = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
+    input.add16(0);
+    const encryptedInput = await input.encrypt();
     await this.ballot.createProposal("Proposal 1");
-    const proposal = await this.ballot.getProposal(0);
+    const proposal = await this.ballot.getProposal.staticCall(encryptedInput.handles[0], encryptedInput.inputProof);
+    console.log(proposal);
     expect(proposal.name).to.equal("Proposal 1");
-    //expect(proposal.index).to.equal(0);
     expect(proposal.voteCount).to.equal(0);
   });
 
@@ -44,9 +49,12 @@ describe("Ballot", function () {
   });
 
   it("should allow voting", async function () {
-    await this.ballot.createProposal("Proposal 1");
+    //await this.ballot.createProposal("Proposal 1");
     await this.ballot.startBallot();
-    await this.ballot.vote(0);
+    const input = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
+    input.add16(0);
+    const encryptedInput = await input.encrypt();
+    await this.ballot.vote(encryptedInput.handles[0], encryptedInput.inputProof);
     const proposal = await this.ballot.getProposal(0);
     expect(proposal.voteCount).to.equal(1);
   });
