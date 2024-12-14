@@ -16,23 +16,22 @@ contract Ballot is
     
     struct Proposal {
         string name;
-        //uint256 index;
-        uint256 voteCount;
+        euint16 voteCount;
     }
-    mapping(uint256 => Proposal) public proposals;
+    mapping(uint16 => Proposal) public proposals;
     mapping(address => bool) public hasVoted;
 
-    euint4 eOne;
-    euint4 eZero;
+    euint16 eOne;
+    euint16 eZero;
 
     uint256 public startTime;
-    uint256 public duration;
-    uint256 public proposalCount;
+    uint16 public duration;
+    uint16 public proposalCount;
     bool public ballotFinished;
 
-    constructor(uint256 _duration) {
-        eOne = TFHE.asEuint4(1);
-        eZero = TFHE.asEuint4(0);
+    constructor(uint16 _duration) {
+        eOne = TFHE.asEuint16(1);
+        eZero = TFHE.asEuint16(0);
         startTime = 0;
         duration = _duration;
         proposalCount = 0;
@@ -41,11 +40,11 @@ contract Ballot is
 
     function createProposal(string memory proposalName) public {
         require(startTime == 0, "Ballot has already started - cannot add new proposals");
-        proposals[proposalCount] = Proposal({name: proposalName, voteCount: 0});
+        proposals[proposalCount] = Proposal({name: proposalName, voteCount: eZero});
         proposalCount++;
     }
 
-    function getProposal(uint256 _index) public view returns (Proposal memory) {
+    function getProposal(uint16 _index) public view returns (Proposal memory) {
         return proposals[_index];
     }
 
@@ -53,11 +52,11 @@ contract Ballot is
         startTime = block.timestamp;
     }
 
-    function vote(uint256 _proposal) public {
+    function vote(uint16 _proposal) public {
         require(isActive(), "Ballot is finished");
         require(!hasVoted[msg.sender], "Already voted");
         
-        for (uint256 i = 0; i < proposalCount; i++) {
+        for (uint16 i = 0; i < proposalCount; i++) {
             if (i == _proposal) {
                 proposals[i].voteCount += 1; //eOne
             } else {
@@ -65,6 +64,7 @@ contract Ballot is
             }
         }
     }
+    
     function isActive() public view returns (bool) {
         return block.timestamp < startTime + duration;
     }
@@ -79,9 +79,9 @@ contract Ballot is
 
     function get_result() public view returns (Proposal memory) {
         require(ballotFinished, "Ballot is not finished");
-        uint256 maxVotes = 0;
-        uint256 maxIndex = 0;
-        for (uint256 i = 0; i < proposalCount; i++) {
+        uint16 maxVotes = 0;
+        uint16 maxIndex = 0;
+        for (uint16 i = 0; i < proposalCount; i++) {
             if (proposals[i].voteCount > maxVotes) {
                 maxVotes = proposals[i].voteCount;
                 maxIndex = i;
