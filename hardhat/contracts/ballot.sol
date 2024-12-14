@@ -16,22 +16,22 @@ contract Ballot is
     
     struct Proposal {
         string name;
-        euint64 voteCount; // Encrypted vote count
+        euint16 voteCount; // Encrypted vote count
     }
-    mapping(euint64 => Proposal) public proposals;
+    mapping(euint16 => Proposal) public proposals;
     mapping(address => bool) public hasVoted;
 
-    euint4 eOne;
-    euint4 eZero;
+    euint16 eOne;
+    euint16 eZero;
 
     uint256 public startTime;
     uint256 public duration;
-    uint256 public proposalCount;
+    uint16 public proposalCount;
     bool public ballotFinished;
 
-    constructor(uint256 _duration) {
-        eOne = TFHE.asEuint4(1);
-        eZero = TFHE.asEuint4(0);
+    constructor(uint16 _duration) {
+        eOne = TFHE.asEuint16(1);
+        eZero = TFHE.asEuint16(0);
         startTime = 0;
         duration = _duration;
         proposalCount = 0;
@@ -41,13 +41,13 @@ contract Ballot is
     function createProposal(string memory proposalName) public {
         require(startTime == 0, "Ballot has already started - cannot add new proposals");
         // Encrypt the current proposal count
-        euint64 encryptedIndex = TFHE.asEuint64(proposalCount);
+        euint16 encryptedIndex = TFHE.asEuint16(proposalCount);
         proposals[encryptedIndex] = Proposal({name: proposalName, voteCount: eZero});
         proposalCount++;
     }
 
 
-    function getProposal(uint256 _encryptedIndex) public view returns (Proposal memory) {
+    function getProposal(euint16 _encryptedIndex) public view returns (Proposal memory) {
         return proposals[_encryptedIndex];
     }
 
@@ -55,23 +55,23 @@ contract Ballot is
         startTime = block.timestamp;
     }
 
-    function vote(euint64 encryptedProposalIndex) public {
+    function vote(euint16 eProposalIndex) public {
+        
         require(isActive(), "Ballot is finished");
         require(!hasVoted[msg.sender], "Already voted");
         
-        for (uint64 i = 0; i < proposalCount; i++) {
-            if (i == encryptedProposalIndex) {
-                proposals[i].voteCount = TFHE.add(
-                    proposals[i].voteCount,
-                    eOne
-                );
-            } else {
-                proposals[i].voteCount = TFHE.add(
-                    proposals[i].voteCount,
-                    eZero
-                );
-            }
+        for (uint16 i = 0; i < proposalCount; i++) {
+            euint16 ei = TFHE.asEuint16(i);
+            ebool isEqual = TFHE.eq(eProposalIndex, ei);
+
+
+            // Using ternary element select to increment the vote count of the selected proposal
+            proposals[ei].voteCount = TFHE.add(
+                proposals[ei].voteCount,
+                TFHE.select(isEqual, eOne, eZero)
+            );
         }
+
 
         hasVoted[msg.sender] = true;
     }
@@ -87,17 +87,21 @@ contract Ballot is
         return ballotFinished;
     }
 
-    function get_result() public view returns (Proposal memory) {
+    function get_result() public returns (string memory proposalName) {
         require(ballotFinished, "Ballot is not finished");
-        euint64 maxVotes = eZero;
-        euint64 maxIndex;
+        euint16 maxVotes = eZero;
+        euint16 maxIndex;
 
-        for (uint64 i = 0; i < proposalCount; i++) {
-            euint64 currentVotes = proposals[i].voteCount;
+
+
+        for (uint16 i = 0; i < proposalCount; i++) {
+            euint16 ei = TFHE.asEuint16(i);
+            euint16 currentVotes = proposals[ei].voteCount;
             ebool isHigher = TFHE.gt(currentVotes, maxVotes);
             maxVotes = TFHE.select(isHigher, currentVotes, maxVotes);
-            maxIndex = TFHE.select(isHigher, i, maxIndex);
+            maxIndex = TFHE.select(isHigher, ei, maxIndex);
         }   
+        return proposals[maxIndex].name;
 
         // TODO: decide what to return/decrypt
 
