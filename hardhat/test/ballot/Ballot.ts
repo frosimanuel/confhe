@@ -31,7 +31,7 @@ describe("Ballot", function () {
     const isFinished = await this.ballot.get_ballot_status();
     expect(isFinished).to.be.false;
   });
-  it("should create a proposal", async function () {
+  it("should create a proposal with index encrypted", async function () {
     const input = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
     input.add16(0);
     const encryptedInput = await input.encrypt();
@@ -41,7 +41,14 @@ describe("Ballot", function () {
     expect(proposal.name).to.equal("Proposal 1");
     expect(proposal.voteCount).to.equal(0);
   });
-
+  
+  it("should create a proposal with index unencrypted", async function () {
+    await this.ballot.createProposal("Proposal 1");
+    const proposal = await this.ballot.getProposalUnencrypted(0);
+    console.log(proposal);
+    expect(proposal.name).to.equal("Proposal 1");
+    // expect(proposal.voteCount).to.equal(0);
+  });
   it("should start the ballot", async function () {
     await this.ballot.startBallot();
     const startTime = await this.ballot.startTime();

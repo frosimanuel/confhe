@@ -19,6 +19,7 @@ contract Ballot is
         euint16 voteCount; // Encrypted vote count
     }
     mapping(euint16 => Proposal) public proposals;
+    mapping(uint16 => Proposal) public uproposals;
     mapping(address => bool) public hasVoted;
 
     euint16 eOne;
@@ -41,14 +42,18 @@ contract Ballot is
     function createProposal(string memory proposalName) public {
         require(startTime == 0, "Ballot has already started - cannot add new proposals");
         // Encrypt the current proposal count
-        euint16 encryptedIndex = TFHE.asEuint16(proposalCount);
-        proposals[encryptedIndex] = Proposal({name: proposalName, voteCount: eZero});
+        uint16 index = proposalCount;
+        uproposals[index] = Proposal({name: proposalName, voteCount: eZero});
         proposalCount++;
     }
 
     function getProposal(einput index, bytes calldata inputProof) public returns (Proposal memory) {
         euint16 eProposalIndex = TFHE.asEuint16(index, inputProof);
         return proposals[eProposalIndex];
+    }
+
+    function getProposalUnencrypted(uint16 index) public view returns (Proposal memory) {
+        return uproposals[index];
     }
 
     function startBallot() public {
