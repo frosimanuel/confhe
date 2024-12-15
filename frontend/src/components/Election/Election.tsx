@@ -69,6 +69,7 @@ export const Election: React.FC = () => {
     proposals: [''],
   });
   const [hasVoted, setHasVoted] = useState<boolean>(false);
+  const [localIsActive, setLocalIsActive] = useState<boolean>(true);
 
   // Uso del hook para consultar el estado del ballot en el contrato
   const {
@@ -77,7 +78,6 @@ export const Election: React.FC = () => {
     error,
     refresh,
   } = useBallotIsActive();
-  
 
   useEffect(() => {
     console.log('Ballot active (contract):', contractIsActive);
@@ -183,6 +183,11 @@ export const Election: React.FC = () => {
     }
   };
 
+  const startVotingPhase = () => {
+    setLocalIsActive(true); // Activa la vista de `CandidateList`
+    setShowForm(false); // Oculta el formulario
+  };
+
   return (
     <motion.div
       className="election-container"
@@ -216,7 +221,7 @@ export const Election: React.FC = () => {
         </motion.div>
       )}
 
-      {contractIsActive ? (
+      {localIsActive ? (
         <CandidateList
           candidates={candidates}
           selectedCandidate={selectedCandidate}
@@ -236,7 +241,8 @@ export const Election: React.FC = () => {
           selectedCandidate={selectedCandidate}
           hasVoted={hasVoted}
           handleVote={handleVote}
-          finalizeVoting={refresh} // Actualiza el estado del contrato
+          finishVote={() => setLocalIsActive(false)}
+          localIsActive={localIsActive}
         />
       )}
 
@@ -246,7 +252,7 @@ export const Election: React.FC = () => {
           handleNewCandidateChange={handleNewCandidateChange}
           addProposal={addProposal}
           createNewCandidate={createNewCandidate}
-          startElection={startElection}
+          startVotingPhase={startVotingPhase}
           candidatesCount={candidates.length}
         />
       )}
