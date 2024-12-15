@@ -1,8 +1,4 @@
 import React, { useState } from 'react';
-import {
-  useCreateProposal,
-  useStartBallot,
-} from '../../hooks/useBallotContract';
 
 interface NewCandidateFormProps {
   newCandidate: {
@@ -14,6 +10,7 @@ interface NewCandidateFormProps {
   addProposal: () => void;
   createNewCandidate: () => void;
   candidatesCount: number;
+  startVotingPhase: () => void;
 }
 
 export const NewCandidateForm: React.FC<NewCandidateFormProps> = ({
@@ -22,16 +19,38 @@ export const NewCandidateForm: React.FC<NewCandidateFormProps> = ({
   addProposal,
   createNewCandidate,
   candidatesCount,
+  startVotingPhase,
 }) => {
-  const { createProposal } = useCreateProposal(); // Hook para crear propuestas
-  const {
-    startBallot,
-    loading: startingBallot,
-    error: startBallotError,
-  } = useStartBallot(); // Hook para iniciar el ballot
-
   const [loading, setLoading] = useState(false);
+  const [startingBallot, setStartingBallot] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startBallotError, setStartBallotError] = useState<string | null>(null);
+
+  const mockCreateProposal = async (candidateName: string) => {
+    // Simula una llamada a un contrato con un retraso
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (candidateName) {
+          resolve(`Proposal for ${candidateName} created.`);
+        } else {
+          reject(new Error('Candidate name is required.'));
+        }
+      }, 1000);
+    });
+  };
+
+  const mockStartBallot = async () => {
+    // Simula el inicio del ballot con un retraso
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (candidatesCount > 1) {
+          resolve('Ballot started successfully.');
+        } else {
+          reject(new Error('At least two candidates are required.'));
+        }
+      }, 1000);
+    });
+  };
 
   const handleAddCandidate = async () => {
     if (!newCandidate.name || !newCandidate.party) {
@@ -42,10 +61,10 @@ export const NewCandidateForm: React.FC<NewCandidateFormProps> = ({
     setLoading(true);
     setError(null);
     try {
-      await createProposal(newCandidate.name); // Llama al contrato para crear la propuesta
+      await mockCreateProposal(newCandidate.name); // Mock de creación de propuesta
       createNewCandidate(); // Actualiza el estado local
       alert(`Candidate "${newCandidate.name}" added successfully!`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error adding candidate:', err);
       setError('Failed to add candidate. Please try again.');
     } finally {
@@ -58,13 +77,11 @@ export const NewCandidateForm: React.FC<NewCandidateFormProps> = ({
       alert('Please add at least two candidates to start the election.');
       return;
     }
-
     try {
-      await startBallot(); // Llama al contrato para iniciar el ballot
       alert('Election started successfully!');
+      startVotingPhase(); // Cambia a la fase de votación
     } catch (err) {
       console.error('Error starting election:', err);
-      alert('Failed to start the election. Please try again.');
     }
   };
 

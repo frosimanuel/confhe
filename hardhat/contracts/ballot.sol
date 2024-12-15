@@ -154,6 +154,7 @@ SepoliaZamaFHEVMConfig,
       }
     }
     return maxIndex;
+    return maxIndex;
   }
 
 

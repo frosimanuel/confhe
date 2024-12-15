@@ -4,9 +4,7 @@ import { network } from "hardhat";
 import { awaitAllDecryptionResults, initGateway } from "../asyncDecrypt";
 import { createInstance } from "../instance";
 import { getSigners, initSigners } from "../signers";
-import { debug } from "../utils";
 import { deployBallot } from "./Ballot.fixture";
-import { reencryptEuint16 } from "../reencrypt";
 
 describe("Ballot", function () {
   before(async function () {
@@ -19,7 +17,6 @@ describe("Ballot", function () {
     const contract = await deployBallot();
     this.contractAddress = await contract.getAddress();
     this.ballot = contract;
-    //this.fhevm = await createInstance();
     this.instances = await createInstance();
   });
 
@@ -27,7 +24,7 @@ describe("Ballot", function () {
     expect(this.contractAddress).to.properAddress;
   });
 
-  it("should not be able to be finished", async function () {
+  it("should not be able to be finished initially", async function () {
     const isFinished = await this.ballot.get_ballot_status();
     expect(isFinished).to.be.false;
   });
@@ -36,8 +33,6 @@ describe("Ballot", function () {
     await this.ballot.createProposal("Proposal 1");
     const proposal = await this.ballot.getProposal(0);
     expect(proposal.name).to.equal("Proposal 1");
-
-    // expect(proposal.voteCount).to.equal(0);
   });
 
   it("should start the ballot", async function () {
@@ -50,8 +45,10 @@ describe("Ballot", function () {
     await this.ballot.startBallot();
     const active = await this.ballot.isActive();
     expect(active).to.be.true;
+
     await network.provider.send("evm_increaseTime", [3600]); // Increase time by 1 hour
     await network.provider.send("evm_mine"); // Mine a new block
+
     await this.ballot.finishBallot();
     const isFinished = await this.ballot.get_ballot_status();
     const active2 = await this.ballot.isActive();
@@ -65,39 +62,36 @@ describe("Ballot", function () {
     await this.ballot.createProposal("Proposal 3");
     await this.ballot.startBallot();
 
-    // Encrypt the vote
-    const input = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-    input.addBool(true).addBool(false).addBool(false);
-    const support = await input.encrypt();
+    // Encrypt and cast votes
+    const votes = [
+      [true, false, false],
+      [true, false, false],
+      [true, false, false],
+      [false, true, false]
+    ];
 
-    // Cast the vote
-    const tx = await this.ballot.castVote(support.handles[0],support.handles[1],support.handles[2], support.inputProof);
-    await tx.wait();
+    for (const vote of votes) {
+      const input = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
+      input.addBool(vote[0]).addBool(vote[1]).addBool(vote[2]);
+      const support = await input.encrypt();
 
-    // Encrypt the vote
-    const input2 = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-    input2.addBool(true).addBool(false).addBool(false);
-    const support2 = await input2.encrypt();
+      const tx = await this.ballot.castVote(support.handles[0], support.handles[1], support.handles[2], support.inputProof);
+      await tx.wait();
+    }
 
-    // Cast the vote
-    const tx3 = await this.ballot.castVote(support2.handles[0],support2.handles[1],support2.handles[2], support2.inputProof);
-    await tx3.wait();
-    
-    const active = await this.ballot.isActive();
-    console.log(active);
-    const tx2 = await this.ballot.finishBallot();
-    await tx2.wait();    
-
+    await this.ballot.finishBallot();
     await awaitAllDecryptionResults();
 
     const results = await this.ballot.getResults();
-    expect(results[0]).to.equal(2);
-    expect(results[1]).to.equal(0);
+    expect(results[0]).to.equal(3);
+    expect(results[1]).to.equal(1);
     expect(results[2]).to.equal(0);
 
-
+    const winner = await this.ballot.getWinner();
+    expect(winner).to.equal(0);
   });
 
+  // Uncomment and complete these tests if needed
   // it("should get the correct result after ballot is finished", async function () {
   //   await this.ballot.createProposal("Proposal 1");
   //   await this.ballot.createProposal("Proposal 2");

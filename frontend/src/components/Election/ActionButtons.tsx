@@ -5,13 +5,17 @@ import { generateVoteProof } from '../../fhevmjs';
 interface ActionButtonsProps {
   selectedCandidate: number | null;
   hasVoted: boolean;
+  localIsActive: boolean;
   handleVote: () => void;
+  finishVote: () => void;
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
   selectedCandidate,
   hasVoted,
   handleVote,
+  finishVote,
+  localIsActive,
 }) => {
   const { castVote } = useCastVote();
   const {
@@ -32,7 +36,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         console.log('Generating vote proof...');
         const { proof, encryptedInputs } = await generateVoteProof(
           votes,
-          '0xbEA34b963599974F154195616c213f19a508A8d4', // Dirección hardcodeada
+          '0x86093b5731BadDdA9C46E13c05D510e28D39F8dF', // Dirección hardcodeada
         );
 
         console.log('Vote proof and encrypted inputs generated:', {
@@ -51,13 +55,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   const handleFinalizeVoting = async () => {
     try {
-      await finishBallot(); // Llama al contrato para finalizar la votación
+      await finishBallot();
       alert('Voting has been finalized!');
+      finishVote();
     } catch (error) {
       console.error('Error finalizing voting:', error);
     }
   };
-
+  if(!localIsActive) return null
   return (
     <div className="buttons-section">
       <button
