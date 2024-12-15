@@ -1,67 +1,68 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider } from 'ethers';
-
-import './Connect.css';
-import { Eip1193Provider } from 'ethers';
+import { ErrorComponent } from '../Error/Error';
 import { createFhevmInstance } from '../../fhevmjs';
+import './Connect.css';
 
 const AUTHORIZED_CHAIN_ID = ['0xaa36a7', '0x2328', '0x7a69'];
 
 export const Connect: React.FC<{
   children: (account: string, provider: any) => React.ReactNode;
-}> = ({ children }) => {
+  onConnectionSuccess: () => void;
+}> = ({ children, onConnectionSuccess }) => {
   const [connected, setConnected] = useState(false);
   const [validNetwork, setValidNetwork] = useState(false);
-  const [account, setAccount] = useState<string>('');
+  const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const refreshAccounts = (accounts: string[]) => {
-    setAccount(accounts[0] || '');
+    setAccount(accounts[0] || null);
     setConnected(accounts.length > 0);
+    if (accounts.length > 0 && validNetwork) {
+      onConnectionSuccess();
+    }
   };
 
   const hasValidNetwork = async (): Promise<boolean> => {
-    const currentChainId: string = (
-      await window.ethereum.request({
+    try {
+      const currentChainId: string = await window.ethereum.request({
         method: 'eth_chainId',
-      })
-    ).toLowerCase();
-
-    return import.meta.env.MOCKED
-      ? currentChainId === AUTHORIZED_CHAIN_ID[2]
-      : currentChainId === AUTHORIZED_CHAIN_ID[0];
+      });
+      return AUTHORIZED_CHAIN_ID.includes(currentChainId.toLowerCase());
+    } catch (e) {
+      setError('Could not verify the network. Please check your connection.');
+      return false;
+    }
   };
 
   const refreshNetwork = useCallback(async () => {
     try {
       const isValid = await hasValidNetwork();
+      setValidNetwork(isValid);
       if (isValid) {
-        setValidNetwork(true);
+        setError(null);
         setLoading(true);
-        const load = async () => {
-          try {
-            await createFhevmInstance();
-            setLoading(false);
-          } catch (loadError) {
-            console.error('Error creating FHEVM instance:', loadError);
-            setLoading(false);
-            setError('Failed to initialize FHEVM instance');
-          }
-        };
-        window.requestAnimationFrame(load);
-      } else {
-        setValidNetwork(false);
+        try {
+          await createFhevmInstance();
+          console.log('FHEVM initialized successfully!');
+        } catch (e) {
+          console.error('Error during FHEVM initialization:', e);
+          setError(
+            'Failed to initialize FHEVM. Check configuration or connection.',
+          );
+        } finally {
+          setLoading(false);
+        }
       }
-    } catch (networkError) {
-      console.error('Error checking network validity:', networkError);
-      setValidNetwork(false);
-      setError('Failed to verify network');
+    } catch (e) {
+      console.error('Network verification error:', e);
+      setError('Error verifying the network.');
     }
   }, []);
 
-  const refreshProvider = (eth: Eip1193Provider) => {
+  const refreshProvider = (eth: any) => {
     const p = new BrowserProvider(eth);
     setProvider(p);
     return p;
@@ -70,96 +71,85 @@ export const Connect: React.FC<{
   useEffect(() => {
     const eth = window.ethereum;
     if (!eth) {
-      setError('No wallet has been found');
+      setError('No wallet detected.');
       return;
     }
 
     const p = refreshProvider(eth);
 
     p.send('eth_accounts', [])
-      .then(async (accounts: string[]) => {
-        refreshAccounts(accounts);
-        await refreshNetwork();
-      })
-      .catch(() => {
-        // Do nothing
-      });
-    eth.on('accountsChanged', refreshAccounts);
-    eth.on('chainChanged', refreshNetwork);
-  }, []);
+      .then(refreshAccounts)
+      .then(refreshNetwork)
+      .catch(() => setError('Error connecting to the wallet.'));
+  }, [refreshNetwork]);
 
   const connect = async () => {
     if (!provider) {
+      setError('No provider configured.');
       return;
     }
-    const accounts: string[] = await provider.send('eth_requestAccounts', []);
 
-    if (accounts.length > 0) {
-      setAccount(accounts[0]);
-      setConnected(true);
+    try {
+      setLoading(true);
+      const accounts = await provider.send('eth_requestAccounts', []);
+      refreshAccounts(accounts);
       if (!(await hasValidNetwork())) {
         await switchNetwork();
       }
+    } catch (e: any) {
+      setError(e.message || 'Error connecting to Metamask.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const switchNetwork = useCallback(async () => {
     try {
+      const chainId = AUTHORIZED_CHAIN_ID[0]; // Default to the first chain in the list
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [
-          { chainId: AUTHORIZED_CHAIN_ID[import.meta.env.MOCKED ? 2 : 0] },
-        ],
+        params: [{ chainId }],
       });
+      await refreshNetwork();
     } catch (e) {
-      console.error(
-        `No ${import.meta.env.MOCKED ? 'Hardhat' : 'Sepolia'} chain configured`,
-      );
+      setError('Error switching network. Please check your configuration.');
     }
-  }, []);
+  }, [refreshNetwork]);
 
-  const child = useMemo<React.ReactNode>(() => {
-    if (!account || !provider) {
-      return null;
-    }
+  const child = useMemo(() => {
+    if (!account || !provider) return null;
 
     if (!validNetwork) {
       return (
         <div>
-          <p>You're not on the correct network</p>
-          <p>
-            <button onClick={switchNetwork}>
-              Switch to {import.meta.env.MOCKED ? 'Hardhat' : 'Sepolia'}
-            </button>
-          </p>
+          <p>You are not connected to the correct network.</p>
+          <button onClick={switchNetwork}>
+            Switch to the authorized network
+          </button>
         </div>
       );
     }
 
-    if (loading) {
-      return <p>Loading...</p>;
-    }
+    if (loading) return <p>Loading...</p>;
 
     return children(account, provider);
   }, [account, provider, children, validNetwork, loading]);
 
   if (error) {
-    return <p>No wallet has been found.</p>;
+    return (
+      <ErrorComponent
+        errorMessage={error}
+        onConnectionSuccess={(account) => setAccount(account)}
+        onConnectionError={(err) => setError(err)}
+      />
+    );
   }
 
-  const connectInfos = (
-    <div className="Connect__info">
-      {!connected && <button onClick={connect}>Connect your wallet</button>}
-      {connected && (
-        <div className="Connect__account">Connected with {account}</div>
-      )}
-    </div>
-  );
-
   return (
-    <>
-      {connectInfos}
-      <div className="Connect__child">{child}</div>
-    </>
+    <div className="Connect">
+      {!connected && <button onClick={connect}>Connect Wallet</button>}
+      {connected && <p>Connected as: {account}</p>}
+      <div>{child}</div>
+    </div>
   );
 };
