@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (isNewDeployment) {
     const signers = await hre.ethers.getSigners();
-    const alice = signers[0];
+    const alice = signers[0]
     const mintAmount = 10_000n;
     const tokenFactory = await hre.ethers.getContractFactory("MyConfidentialERC20");
     const token = tokenFactory.attach(deployed.address);
