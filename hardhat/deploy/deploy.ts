@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const deployedBallot = await deploy("Ballot", {
     from: deployer,
-    args: ["10000"],
+    args: ["1000"],
     log: true,
   });
   console.log(`Ballot contract: `, deployedBallot.address);
