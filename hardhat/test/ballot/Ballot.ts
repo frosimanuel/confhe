@@ -75,7 +75,7 @@ describe("Ballot", function () {
     await tx.wait();
 
     // Encrypt the vote
-    const input2 = this.instances.createEncryptedInput(this.contractAddress, this.signers.bob.address);
+    const input2 = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
     input2.addBool(true).addBool(false).addBool(false);
     const support2 = await input2.encrypt();
 
@@ -89,7 +89,6 @@ describe("Ballot", function () {
     await tx2.wait();    
 
     await awaitAllDecryptionResults();
-    console.log(this.signers.bob);
 
     const results = await this.ballot.getResults();
     expect(results[0]).to.equal(2);

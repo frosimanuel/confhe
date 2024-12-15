@@ -1,7 +1,4 @@
-
-
 // SPDX-License-Identifier: BSD-3-Clause-Clear
-
 pragma solidity ^ 0.8.24;
 
 import "fhevm/lib/TFHE.sol";
@@ -69,7 +66,7 @@ SepoliaZamaFHEVMConfig,
 
   function castVote(einput value1, einput value2, einput value3, bytes calldata inputProof) external {
     require(isActive(), "Ballot is finished");
-    // require(!hasVoted[msg.sender], "Already voted");
+    // require(!hasVoted[msg.sender], "Already voted"); // Uncomment this line for production
     _processVotes(TFHE.asEbool(value1, inputProof), TFHE.asEbool(value2, inputProof), TFHE.asEbool(value3, inputProof)); // Each vote counts as 1
     hasVoted[msg.sender] = true;
   }
