@@ -96,16 +96,5 @@ contract Ballot is
         return ballotFinished;
     }
 
-    function get_result() public view returns (Proposal memory) {
-        require(ballotFinished, "Ballot is not finished");
-        uint16 maxVotes = 0;
-        uint16 maxIndex = 0;
-        for (uint16 i = 0; i < proposalCount; i++) {
-            if (proposals[i].voteCount > maxVotes) {
-                maxVotes = proposals[i].voteCount;
-                maxIndex = i;
-            }
-        }
-        return proposals[maxIndex];
-    }
+
 }
