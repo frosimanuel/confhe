@@ -8,9 +8,9 @@
 
 ### About
 
-🧪 This is a draft for a voting dApp designed to facilitate use Fully Homomorphic Encryption for secure voting. By leveraging the fhevm encrypted data types, this dApp ensures voting data integrity, privacy and process transparency.
+🧪 This is a draft for a voting dApp designed to facilitate use Fully Homomorphic Encryption for secure voting. By leveraging the fhevm encrypted data types, this dApp ensures voting data integrity, privacy and process transparency
 
-⚙️ Built using React, Hardhat, Wagmi, Viem, and Typescript.
+⚙️ Built using React, Hardhat, Wagmi, Viem, and Typescript
 
 - **Secure and Transparent**: Ensures votes are securely recorded on the blockchain and visible for verification only after the voting process is finished.
 
