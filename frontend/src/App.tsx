@@ -9,14 +9,18 @@ import { Election } from './components/Election/Election';
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showElection, setShowElection] = useState(true);
+  const [showElection, setShowElection] = useState(false);
 
   useEffect(() => {
     init()
       .then(() => {
+        console.log('Inicialización completada');
         setIsInitialized(true);
       })
-      .catch(() => setIsInitialized(false))
+      .catch((error) => {
+        console.error('Error al inicializar:', error);
+        setIsInitialized(false);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -63,7 +67,11 @@ function App() {
             <Connect onConnectionSuccess={() => setShowElection(true)}>
               {(account, provider) => (
                 <div className="devnet-container">
-                  <Devnet account={account} provider={provider} />
+                  <Devnet
+                    account={account}
+                    provider={provider}
+                    onConnectionSuccess={() => setShowElection(true)}
+                  />
                 </div>
               )}
             </Connect>

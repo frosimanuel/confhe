@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { ElectionHeader } from './ElectionHeader';
+import { CandidateList } from './CandidateList';
+import { ElectionResults } from './ElectionResults';
+import { NewCandidateForm } from './NewCandidateForm';
+import { ActionButtons } from './ActionButtons';
 import './Election.css';
 
 interface Candidate {
@@ -55,7 +60,7 @@ export const Election: React.FC = () => {
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(
     null,
   );
-  const [isActive, setIsActive] = useState(true); // Estado para habilitar o deshabilitar la votación
+  const [isActive, setIsActive] = useState(true);
   const [candidates, setCandidates] = useState<Candidate[]>(candidatesInitial);
   const [showForm, setShowForm] = useState(false);
   const [newCandidate, setNewCandidate] = useState({
@@ -83,12 +88,29 @@ export const Election: React.FC = () => {
 
       if (difference <= 0) {
         clearInterval(interval);
-        setIsActive(false); // Finaliza la votación
+        setIsActive(false);
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
+
+  const logVoteRequests = (candidateId: number | null) => {
+    if (candidateId === null) return;
+
+    candidates.forEach((candidate, index) => {
+      const isVoted = candidate.id === candidateId;
+
+      setTimeout(() => {
+        console.log(`Index: ${index}, Voted: ${isVoted}`);
+        simulateRequest(index, isVoted);
+      }, index * 500);
+    });
+  };
+
+  const simulateRequest = (index: number, isVoted: boolean) => {
+    console.log(`Simulating request -> Index: ${index}, Voted: ${isVoted}`);
+  };
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -164,7 +186,7 @@ export const Election: React.FC = () => {
           votes: 0,
         },
       ]);
-      setNewCandidate({ name: '', party: '', proposals: [''] }); // Limpiar formulario para agregar otro candidato
+      setNewCandidate({ name: '', party: '', proposals: [''] });
       alert('New candidate has been added!');
     } else {
       alert('Please fill in all required fields!');
@@ -178,17 +200,12 @@ export const Election: React.FC = () => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.8 }}
     >
-      <motion.div
-        className="election-header"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <h1 className="election-title">Election Countdown</h1>
-        <p className="countdown">
-          {isActive ? formatTime(timeLeft) : 'Voting Closed'}
-        </p>
-      </motion.div>
+      <ElectionHeader
+        isActive={isActive}
+        timeLeft={timeLeft}
+        formatTime={formatTime}
+      />
+
       {hasVoted && (
         <motion.div
           className="vote-message"
@@ -201,159 +218,39 @@ export const Election: React.FC = () => {
       )}
 
       {isActive ? (
-        <motion.div
-          className="vote-section"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-        >
-          {!hasVoted && <h2 className="vote-title">Select Your Candidate</h2>}
-          <motion.ul
-            className="candidate-list"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5 }}
-          >
-            {candidates.map((candidate) => (
-              <motion.li
-                key={candidate.id}
-                className={`candidate ${
-                  selectedCandidate === candidate.id ? 'selected' : ''
-                } ${hasVoted ? 'disabled-candidate' : ''}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedCandidate(candidate.id)}
-              >
-                <div className="candidate-header">
-                  <span className="candidate-icon">{candidate.icon}</span>
-                  <div className="candidate-info">
-                    <span className="candidate-name">{candidate.name}</span>
-                    <span className="candidate-party">{candidate.party}</span>
-                  </div>
-                </div>
-                <ul className="candidate-proposals">
-                  {candidate.proposals.map((proposal, index) => (
-                    <li key={index}>{proposal}</li>
-                  ))}
-                </ul>
-              </motion.li>
-            ))}
-          </motion.ul>
-        </motion.div>
+        <CandidateList
+          candidates={candidates}
+          selectedCandidate={selectedCandidate}
+          setSelectedCandidate={setSelectedCandidate}
+          hasVoted={hasVoted}
+        />
       ) : (
-        <motion.div
-          className="results-section"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-        >
-          <h2>Election Results</h2>
-          <ul className="results-list">
-            {candidates.map((candidate) => {
-              const totalVotes = candidates.reduce(
-                (sum, c) => sum + c.votes,
-                0,
-              );
-              return (
-                <li key={candidate.id} className="result-item">
-                  {candidate.icon} {candidate.name} ({candidate.party}):{' '}
-                  {candidate.votes} votes (
-                  {getVotePercentage(candidate.votes, totalVotes)})
-                </li>
-              );
-            })}
-          </ul>
-          <button onClick={resetElection}>Reset Election</button>
-        </motion.div>
+        <ElectionResults
+          candidates={candidates}
+          resetElection={resetElection}
+          getVotePercentage={getVotePercentage}
+        />
       )}
 
       {isActive && (
-        <motion.div
-          className="buttons-section"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-        >
-          <button
-            className={`vote-button ${selectedCandidate !== null && !hasVoted ? '' : 'disabled'}`}
-            onClick={handleVote}
-            disabled={selectedCandidate === null || hasVoted}
-          >
-            Vote
-          </button>
-
-          <button className="finalize-button" onClick={finalizeVoting}>
-            Finalize Voting
-          </button>
-        </motion.div>
+        <ActionButtons
+          selectedCandidate={selectedCandidate}
+          hasVoted={hasVoted}
+          handleVote={handleVote}
+          finalizeVoting={finalizeVoting}
+          logVoteRequests={logVoteRequests}
+        />
       )}
 
       {showForm && (
-        <motion.div
-          className="new-candidate-form"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-        >
-          <h2 className="form-title">Add a New Candidate</h2>
-          <div className="form-group">
-            <label htmlFor="candidate-name">Candidate Name:</label>
-            <input
-              id="candidate-name"
-              type="text"
-              placeholder="Enter candidate's name"
-              value={newCandidate.name}
-              onChange={(e) => handleNewCandidateChange('name', e.target.value)}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="party-name">Party Name:</label>
-            <input
-              id="party-name"
-              type="text"
-              placeholder="Enter party name"
-              value={newCandidate.party}
-              onChange={(e) =>
-                handleNewCandidateChange('party', e.target.value)
-              }
-              className="form-input"
-            />
-          </div>
-          <div className="form-group proposals-group">
-            <label>Proposals:</label>
-            {newCandidate.proposals.map((proposal, index) => (
-              <div key={index} className="proposal-input-wrapper">
-                <input
-                  type="text"
-                  placeholder={`Proposal ${index + 1}`}
-                  value={proposal}
-                  onChange={(e) => {
-                    const updatedProposals = [...newCandidate.proposals];
-                    updatedProposals[index] = e.target.value;
-                    handleNewCandidateChange('proposals', updatedProposals);
-                  }}
-                  className="form-input proposal-input"
-                />
-              </div>
-            ))}
-            <button className="add-proposal-button" onClick={addProposal}>
-              + Add Proposal
-            </button>
-          </div>
-          <div className="form-buttons">
-            <button className="form-submit-button" onClick={createNewCandidate}>
-              Add Candidate
-            </button>
-            <button
-              className="form-start-election-button"
-              onClick={startElection}
-              disabled={candidates.length <= 1}
-            >
-              Start Election
-            </button>
-          </div>
-        </motion.div>
+        <NewCandidateForm
+          newCandidate={newCandidate}
+          handleNewCandidateChange={handleNewCandidateChange}
+          addProposal={addProposal}
+          createNewCandidate={createNewCandidate}
+          startElection={startElection}
+          candidatesCount={candidates.length}
+        />
       )}
     </motion.div>
   );
