@@ -91,29 +91,5 @@ describe("Ballot", function () {
     expect(winner).to.equal(0);
   });
 
-  // Uncomment and complete these tests if needed
-  // it("should get the correct result after ballot is finished", async function () {
-  //   await this.ballot.createProposal("Proposal 1");
-  //   await this.ballot.createProposal("Proposal 2");
-  //   await this.ballot.startBallot();
-  //   await this.ballot.castVote(0);
-  //   await this.ballot.castVote(0);
-  //   await this.ballot.castVote(1);
-  //   await network.provider.send("evm_increaseTime", [3600]); // Increase time by 1 hour
-  //   await network.provider.send("evm_mine"); // Mine a new block
-  //   await this.ballot.finishBallot();
-  //   const result = await this.ballot.get_result();
-  //   expect(result.name).to.equal("Proposal 1");
-  //   expect(result.voteCount).to.equal(2);
-  // });
-
-  // it("should not allow voting after ballot is finished", async function () {
-  //   await this.ballot.createProposal("Proposal 1");
-  //   await this.ballot.startBallot();
-  //   await network.provider.send("evm_increaseTime", [3600]); // Increase time by 1 hour
-  //   await network.provider.send("evm_mine"); // Mine a new block
-  //   await this.ballot.finishBallot();
-  //   const isFinished = await this.ballot.get_ballot_status();
-  //   await expect(this.ballot.castVote(0)).to.be.revertedWith("Ballot is finished");
-  // });
+  
 });
