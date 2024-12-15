@@ -135,11 +135,7 @@ SepoliaZamaFHEVMConfig,
     return ballotFinished;
   }
 
-  /**
-   * @dev Returns the winning proposal
-   * @return The winning proposal
-   */
-  function get_winner() public view returns(Proposal memory) {
+  function getWinner() public view returns(uint16) {
     require(ballotFinished, "Ballot is not finished");
         uint16 maxVotes = 0;
         uint16 maxIndex = 0;
@@ -149,7 +145,7 @@ SepoliaZamaFHEVMConfig,
         maxIndex = i;
       }
     }
-    return proposals[maxIndex];
+    return maxIndex;
   }
 
 
