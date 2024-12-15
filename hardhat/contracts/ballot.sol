@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pragma solidity ^0.8.24;
@@ -52,7 +51,7 @@ contract Ballot is
         startTime = block.timestamp;
     }
 
-    function vote(uint16 _proposal) public {
+    /*function vote(uint16 _proposal) public {
         require(isActive(), "Ballot is finished");
         require(!hasVoted[msg.sender], "Already voted");
         
@@ -63,11 +62,31 @@ contract Ballot is
                 proposals[i].voteCount += 0; //eZero
             }
         }
+    }*/
+
+    function castVote(uint16 _index, einput _vote, bytes calldata inputProof) public {
+        
+        require(isActive(), "Ballot is finished");
+        require(!hasVoted[msg.sender], "Already voted");
+
+        ebool vote = TFHE.asEbool(_vote, inputProof);
+
+        Proposal memory proposal = proposals[_index];
+        //retorna algo?
+
+        for (uint16 i = 0; i < proposalCount; i++) {
+        proposal.voteCount = TFHE.select(vote, TFHE.add(proposal.voteCount, eOne), TFHE.add(proposal.voteCount, eZero));
+            
+        }
+
+        hasVoted[msg.sender] = true;
+        
     }
     
     function isActive() public view returns (bool) {
         return block.timestamp < startTime + duration;
     }
+
     function finishBallot() public {
         require(!isActive(), "Ballot is still ongoing");
         ballotFinished = true;
@@ -77,7 +96,7 @@ contract Ballot is
         return ballotFinished;
     }
 
-    function get_result() public view returns (Proposal memory) {
+    /*function get_result() public view returns (Proposal memory) {
         require(ballotFinished, "Ballot is not finished");
         uint16 maxVotes = 0;
         uint16 maxIndex = 0;
@@ -88,5 +107,5 @@ contract Ballot is
             }
         }
         return proposals[maxIndex];
-    }
-}   
+    }*/
+}

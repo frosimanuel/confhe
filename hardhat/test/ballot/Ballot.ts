@@ -18,7 +18,8 @@ describe("Ballot", function () {
     const contract = await deployBallot();
     this.contractAddress = await contract.getAddress();
     this.ballot = contract;
-    this.fhevm = await createInstance();
+    //this.fhevm = await createInstance();
+    this.instances = await createInstance();
   });
 
   it("should deploy the contract", async function () {
@@ -29,11 +30,12 @@ describe("Ballot", function () {
     const isFinished = await this.ballot.get_ballot_status();
     expect(isFinished).to.be.false;
   });
+
   it("should create a proposal", async function () {
     await this.ballot.createProposal("Proposal 1");
     const proposal = await this.ballot.getProposal(0);
     expect(proposal.name).to.equal("Proposal 1");
-    //expect(proposal.index).to.equal(0);
+
     expect(proposal.voteCount).to.equal(0);
   });
 
@@ -46,7 +48,11 @@ describe("Ballot", function () {
   it("should allow voting", async function () {
     await this.ballot.createProposal("Proposal 1");
     await this.ballot.startBallot();
-    await this.ballot.vote(0);
+    const input = this.instances.createEncryptedInput(this.contractAddress, this.signers.alice.address);
+    input.addBool(1);
+    const encryptedInput = await input.encrypt();
+
+    await this.ballot.castVote.staticCall(encryptedInput.handles[0], encryptedInput.inputProof);
     const proposal = await this.ballot.getProposal(0);
     expect(proposal.voteCount).to.equal(1);
   });
@@ -64,9 +70,9 @@ describe("Ballot", function () {
     await this.ballot.createProposal("Proposal 1");
     await this.ballot.createProposal("Proposal 2");
     await this.ballot.startBallot();
-    await this.ballot.vote(0);
-    await this.ballot.vote(0);
-    await this.ballot.vote(1);
+    await this.ballot.castVote(0);
+    await this.ballot.castVote(0);
+    await this.ballot.castVote(1);
     await network.provider.send("evm_increaseTime", [3600]); // Increase time by 1 hour
     await network.provider.send("evm_mine"); // Mine a new block
     await this.ballot.finishBallot();
@@ -82,6 +88,6 @@ describe("Ballot", function () {
     await network.provider.send("evm_mine"); // Mine a new block
     await this.ballot.finishBallot();
     const isFinished = await this.ballot.get_ballot_status();
-    await expect(this.ballot.vote(0)).to.be.revertedWith("Ballot is finished");
+    await expect(this.ballot.castVote(0)).to.be.revertedWith("Ballot is finished");
   });
 });
