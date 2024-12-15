@@ -1,30 +1,20 @@
-import { useEffect, useState } from 'react';
-import { Devnet } from './components/Devnet';
-import { init } from './fhevmjs';
-import './App.css';
-import { Connect } from './components/Connect';
-import { motion } from 'framer-motion';
-import { Election } from './components/Election/Election';
+import { motion } from "framer-motion";
+import { useAppState } from "./hooks/useAppState";
+import { Devnet } from "./components/Devnet";
+import { Connect } from "./components/Connect";
+import { Election } from "./components/Election/Election";
+import "./App.css";
 
 function App() {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [showElection, setShowElection] = useState(false);
+  const {
+    isInitialized,
+    loading,
+    showElection,
+    showElectionScreen,
+  } = useAppState();
 
-  useEffect(() => {
-    init()
-      .then(() => {
-        console.log('Inicialización completada');
-        setIsInitialized(true);
-      })
-      .catch((error) => {
-        console.error('Error al inicializar:', error);
-        setIsInitialized(false);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (!isInitialized) return null;
+  if (loading) return <p>Loading...</p>;
+  if (!isInitialized) return <p>Error: App could not initialize.</p>;
 
   return (
     <motion.div
@@ -56,21 +46,19 @@ function App() {
             </motion.p>
           </header>
 
-          {/* Main Section */}
           <motion.main
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 0.8 }}
             className="main-content"
           >
-            {/* Connect Wallet Section */}
-            <Connect onConnectionSuccess={() => setShowElection(true)}>
+            <Connect onConnectionSuccess={showElectionScreen}>
               {(account, provider) => (
                 <div className="devnet-container">
                   <Devnet
                     account={account}
                     provider={provider}
-                    onConnectionSuccess={() => setShowElection(true)}
+                    onConnectionSuccess={showElectionScreen}
                   />
                 </div>
               )}
@@ -79,7 +67,6 @@ function App() {
         </>
       )}
 
-      {/* Footer Section */}
       <footer className="app-footer">
         <p className="footer-highlight">
           "The future of democracy is <strong>secure</strong>, transparent, and
