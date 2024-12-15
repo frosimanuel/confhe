@@ -15,7 +15,7 @@ export const reencryptRequestMocked = async (
     name: 'Authorization token',
     version: '1',
     chainId: 31337,
-    verifyingContract: '0x86093b5731BadDdA9C46E13c05D510e28D39F8dF',
+    verifyingContract: '0xbEA34b963599974F154195616c213f19a508A8d4',
   };
   const types = {
     Reencrypt: [{ name: 'publicKey', type: 'bytes' }],

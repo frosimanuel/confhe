@@ -32,7 +32,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         console.log('Generating vote proof...');
         const { proof, encryptedInputs } = await generateVoteProof(
           votes,
-          '0x86093b5731BadDdA9C46E13c05D510e28D39F8dF', // Dirección hardcodeada
+          '0xbEA34b963599974F154195616c213f19a508A8d4', // Dirección hardcodeada
         );
 
         console.log('Vote proof and encrypted inputs generated:', {
