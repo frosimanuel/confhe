@@ -81,7 +81,10 @@ SepoliaZamaFHEVMConfig,
    event VoteCountDecrypted(uint64 requestId, uint16 decryptedVoteCount);
 
   /**
-   * @dev Casts a vote for a specific proposal
+   * @dev Process votes for all the proposals, using the encrypted votes and the input proof, we had to hardcode
+   * the number of proposals to 3, but this can be easily extended to any number of proposals, this was because of
+   * how the fhevm works, as it does not support iterating over encrypted values, so to have REALLY confidential voting,
+   * we would need to have a different way to do this, but for now this is a good start.
    * @param value1 The encrypted vote for the first proposal
    * @param value2 The encrypted vote for the second proposal
    * @param value3 The encrypted vote for the third proposal
@@ -89,13 +92,14 @@ SepoliaZamaFHEVMConfig,
    */
   function castVote(einput value1, einput value2, einput value3, bytes calldata inputProof) external {
     require(isActive(), "Ballot is finished");
-    // require(!hasVoted[msg.sender], "Already voted"); // Uncomment this line for production
-    _processVotes(TFHE.asEbool(value1, inputProof), TFHE.asEbool(value2, inputProof), TFHE.asEbool(value3, inputProof)); // Each vote counts as 1
+    // require(!hasVoted[msg.sender], "Already voted"); // Uncomment this line for production, for simplicity in testing we are not checking if the user has voted
+    _processVotes(TFHE.asEbool(value1, inputProof), TFHE.asEbool(value2, inputProof), TFHE.asEbool(value3, inputProof));
     hasVoted[msg.sender] = true;
   }
 
   /**
-   * @dev Internal function to process votes
+   * @dev We understand this does not look like the best way to do this, but without an iteration over encrypted values,
+   * we have to update all the proposals manually, so that every one of them changes state in the blockchain.
    * @param prop1 The encrypted vote for the first proposal
    * @param prop2 The encrypted vote for the second proposal
    * @param prop3 The encrypted vote for the third proposal
@@ -122,7 +126,7 @@ SepoliaZamaFHEVMConfig,
    * @dev Finishes the ballot by requesting decryption and setting the ballotFinished flag
    */
   function finishBallot() public {
-    // require(!isActive(), "Ballot is still ongoing");
+    // require(!isActive(), "Ballot is still ongoing");  // Commented out for simplicity in testing
     _decryptedVoteCount();
     ballotFinished = true;
   }
@@ -136,10 +140,10 @@ SepoliaZamaFHEVMConfig,
   }
 
   /**
-   * @dev Returns the winning proposal
+   * @dev Returns the winning proposal, this is the one with the most votes, this function only works after decryption so it needs to check if the ballot is finished.
    * @return The winning proposal
    */
-  function get_winner() public view returns(Proposal memory) {
+  function getWinner() public view returns(uint16) {
     require(ballotFinished, "Ballot is not finished");
         uint16 maxVotes = 0;
         uint16 maxIndex = 0;
@@ -149,12 +153,12 @@ SepoliaZamaFHEVMConfig,
         maxIndex = i;
       }
     }
-    return proposals[maxIndex];
+    return maxIndex;
   }
 
 
   /**
-   * @dev Internal function to trigger decryption and populate results
+   * @dev Internal function to trigger decryption and populate results, this function is called by the finishBallot function.
    */
   function _decryptedVoteCount() internal {
     uint256[] memory cts = new uint256[](proposalCount);
@@ -165,7 +169,7 @@ SepoliaZamaFHEVMConfig,
     }
 
   /**
-   * @dev Callback function for decryption results
+   * @dev Callback function for decryption results, this function populates the results array with the decrypted vote counts, should be called only after the ballot is finished.
    * @param dValue The decrypted vote counts
    */
   function callbackSecret(uint256, uint16[MAX_PROPOSALS] memory dValue) public onlyGateway {
